@@ -1,0 +1,45 @@
+#!/bin/sh
+# bump 104.3
+set -e
+
+export NODE_PATH=$PWD
+export SV_ROOT=$SCRATCH/sv1
+export EXTENSIONS=$SCRATCH/ext
+
+if [ -e /sys/bus/platform/drivers/vc4-drm ]; then
+    echo "Pi 4/5 (DRM)"
+    read -d. uptime < /proc/uptime
+    if [ $uptime -lt 300 ]; then
+        sleep 15 # delay for update confirm
+    else
+        sleep 4
+    fi
+
+    # Try to fetch current info-beamer display info
+    # to calculate a browser scale factor.
+    # Run as low priv user, so the resulting file
+    # isn't considered owned by the syncer process
+    # so it isn't removed by config changes.
+    setuidgid $USER python set-scale.py
+
+    if which infobeamer > /dev/null; then
+        infobeamer off
+        sleep 2
+    else
+        sv d /service/info-beamer
+    fi
+fi
+
+rm -rf $EXTENSIONS
+mkdir -p $EXTENSIONS
+cd $EXTENSIONS
+unzip $NODE_PATH/ublock.zip
+
+rm -rf $SV_ROOT
+cp -r $NODE_PATH/.sv $SV_ROOT
+cd $SV_ROOT
+chmod 755 chromium/install-certs
+chmod 755 */run
+
+# Do not exec here, so the runsvdir command is killable.
+runsvdir .

@@ -1,0 +1,25 @@
+{
+    "name": "Fullscreen Browser (Traditional Chinese)",
+    "author": "info-beamer.com",
+    "version": "104.4-TC1",
+    "desc": "Chromium Browser packaged as an info-beamer hosted 'service'",
+    "runtime": {
+        "transparent": true
+    },
+    "platforms": [
+        "pi-2",
+        "pi-3",
+        "pi-cm3",
+        "pi/v8"
+    ],
+    "offline": {
+        "support": "no",
+        "info": "Needs to reach configured websites"
+    },
+    "nesting": {
+        "parents": [
+            "top-level"
+        ],
+        "childs": []
+    }
+}

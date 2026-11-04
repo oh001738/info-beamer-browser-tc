@@ -1,0 +1,90 @@
+#!/bin/sh
+export DISPLAY=:0
+export GSETTINGS_SCHEMA_DIR=/usr/share/gconf/schemas/
+export XDG_DATA_DIRS=/usr/share/gconf/schemas/
+
+# decide where to store the browser profile
+if jq .persistent $NODE_PATH/config.json -e > /dev/null; then
+    HOME=$SCRATCH/home-v1
+else
+    HOME=/tmp/chromium
+    rm -rf $HOME
+fi
+
+# setup timezone
+TZ=$(jq  .timezone $NODE_PATH/config.json -r)
+if [ "$TZ" == "device" ]; then
+    TZ=$(jq  .__metadata.timezone $NODE_PATH/config.json -r)
+fi
+TZ=":${TZ}"
+export TZ
+echo "Timezone is $TZ"
+
+# setup home
+mkdir -p $HOME
+chown $USER $HOME
+export HOME
+
+# Traditional Chinese font fallback. Store under the selected browser HOME,
+# which works for both temporary and persistent profiles. The upstream
+# fontconfig configuration discovers ~/.fonts without modifying the overlay.
+mkdir -p "$HOME/.fonts"
+if ! cmp -s "$NODE_PATH/NotoSansCJKtc-Regular.otf" "$HOME/.fonts/NotoSansCJKtc-Regular.otf"; then
+    cp "$NODE_PATH/NotoSansCJKtc-Regular.otf" "$HOME/.fonts/NotoSansCJKtc-Regular.otf"
+fi
+chown "$USER" "$HOME/.fonts" "$HOME/.fonts/NotoSansCJKtc-Regular.otf"
+if command -v fc-cache >/dev/null 2>&1; then
+    chpst -u "$USER" fc-cache "$HOME/.fonts" || echo "Font cache update failed; Chromium will use fontconfig discovery"
+fi
+
+# prepare custom certificates
+rm -rf $HOME/.pki/nssdb
+mkdir -p $HOME/.pki/nssdb
+certutil -d sql:$HOME/.pki/nssdb -N --empty-password
+./install-certs
+certutil -d sql:$HOME/.pki/nssdb -L
+chown -R $USER $HOME/.pki/nssdb
+
+EXTRA_ARGS=""
+
+if jq .no_cert_check $NODE_PATH/config.json -e > /dev/null; then
+    EXTRA_ARGS="$EXTRA_ARGS --ignore-certificate-errors"
+fi
+
+if jq .adblock $NODE_PATH/config.json -e > /dev/null; then
+    EXTRA_ARGS="$EXTRA_ARGS --load-extension=$EXTENSIONS/ublock/"
+fi
+
+# Prevent "crashed, want to restore" message. There doesn't
+# seem to be a proper way of doing that :(
+if [ -e $HOME/.config/chromium/Default/Preferences ]; then
+    sed -i 's/"exit_type":"Crashed"/"exit_type":"Normal"/' $HOME/.config/chromium/Default/Preferences
+fi
+
+
+# https://ryantkelly.github.io/rpi-tv
+exec chpst -u $USER chromium-browser \
+    --verbose \
+    --no-touch-pinch \
+    --kiosk \
+    --remote-debugging-port=9222 \
+    --disable-infobars \
+    --disable-ntp-popular-sites \
+    --disable-speech-api \
+    --disable-sync \
+    --disable-translate \
+    --disk-cache-size=16777216 \
+    --no-default-browser-check \
+    --noerrdialogs \
+    --safebrowsing-disable-auto-update \
+    --process-per-site \
+    --force-device-scale-factor=$(cat $NODE_PATH/display-scale) \
+    --disable-notifications \
+    --autoplay-policy=no-user-gesture-required \
+    --accept-lang="$(jq -r .language $NODE_PATH/config.json),en" \
+    $EXTRA_ARGS \
+    about:blank
+
+# --remote-debugging-address=0.0.0.0
+# --no-sandbox
+# --no-first-run (disable /usr/lib/chromium-browser/master_preferences)

@@ -1,0 +1,28 @@
+#!/usr/bin/python
+import requests, os, sys, time
+
+was_off, off = False, False
+while 1:
+    time.sleep(1)
+    r = requests.get('http://127.0.0.1:81/api/v1/status')
+    r.raise_for_status()
+    was_off, off = off, not r.json()['video']['on']
+
+    print >>sys.stderr, "[browser-power] TV off: %s" % (off,)
+    if was_off == off:
+        continue
+
+    if off:
+        print >>sys.stderr, "[browser-power] TV turned off"
+        # sv d for X isn't enough as it refuses to go down on SIGTERM and then
+        # hangs without closing its socket. Starting again then fails due to
+        # X being in a borked state. So sig kill everything after 3 seconds.
+        os.system("sv d ../x ../cursor ../chromium ../control ../ratpoison")
+        time.sleep(3)
+        os.system("sv k ../x ../cursor ../chromium ../control ../ratpoison")
+    else:
+        print >>sys.stderr, "[browser-power] TV is back on. restarting X/control"
+        time.sleep(3)
+        os.system("sv u ../x")
+        time.sleep(3)
+        os.system("sv u ../ratpoison ../cursor ../chromium ../control")
