@@ -2,9 +2,9 @@
 
 本專案根據 info-beamer Fullscreen Browser 104.4 新增繁體中文字型和 `zh-TW` 語言設定。
 
-**安裝請下載本儲存庫 Releases 的 `fullscreen-browser-tc-final.zip`。** 完整套件含原版 `overlay.squashfs`（約 291 MB），因超過 GitHub 單檔限制，未放在 Git 原始碼中。此原始碼儲存庫不含 overlay，不能直接作為完整 info-beamer Git 套件匯入。
+**安裝請在 info-beamer 匯入 package.links：** `https://raw.githubusercontent.com/oh001738/info-beamer-browser-tc/main/package.links`。完整套件含原版 `overlay.squashfs`（約 291 MB），因超過 GitHub 單檔限制，未放在 Git 原始碼中。此原始碼儲存庫不含 overlay，不能直接作為完整 info-beamer Git 套件匯入。
 
-在 info-beamer 選擇 Add package → Create from URL，貼上 Release 的 ZIP 下載網址。播放器需要保留看板配對時，請開啟 Persistent Profile。
+在 info-beamer 選擇 Add package → Create from URL，貼上上述 `package.links` 網址。播放器需要保留看板配對時，請開啟 Persistent Profile。
 
 本版本尚需在實際 info-beamer 播放器驗證。Noto Sans CJK TC 字型授權見 `OFL-Noto.txt`；原版套件說明如下。
 
